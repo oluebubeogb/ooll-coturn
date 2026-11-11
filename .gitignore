@@ -1,0 +1,9 @@
+.env
+*.pem
+*.key
+*.crt
+certs/*
+!certs/.gitkeep
+data/
+*.log
+.DS_Store

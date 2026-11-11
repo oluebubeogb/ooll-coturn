@@ -1,0 +1,36 @@
+# OOLL Space coturn: standalone TURN/STUN relay for WebRTC voice and video calls.
+# network_mode: host is required so the UDP relay port range is reachable.
+# Coolify supports host networking on the Docker Compose resource.
+#
+# Traefik / Coolify's HTTP proxy cannot forward UDP, so do not put this
+# service behind the proxy. Point clients at the host's public IP or DNS
+# name (for example turn.example.com) on the ports below.
+
+services:
+  coturn:
+    image: coturn/coturn:4.6
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      TURN_REALM: ${TURN_REALM:-turn.example.com}
+      TURN_USERNAME: ${TURN_USERNAME:-oollspace}
+      TURN_PASSWORD: ${TURN_PASSWORD:-}
+      EXTERNAL_IP: ${EXTERNAL_IP:-}
+      LISTEN_PORT: ${LISTEN_PORT:-3478}
+      TLS_PORT: ${TLS_PORT:-5349}
+      MIN_PORT: ${MIN_PORT:-49152}
+      MAX_PORT: ${MAX_PORT:-49999}
+      TURN_CERT: ${TURN_CERT:-/certs/fullchain.pem}
+      TURN_KEY: ${TURN_KEY:-/certs/privkey.pem}
+      USER_QUOTA: ${USER_QUOTA:-12}
+      TOTAL_QUOTA: ${TOTAL_QUOTA:-1200}
+    volumes:
+      - ./docker-entrypoint.sh:/usr/local/bin/ooll-turn-entrypoint.sh:ro
+      - ${TURN_CERT_DIR:-./certs}:/certs:ro
+      - coturn_data:/var/lib/coturn
+    entrypoint: ["/bin/sh", "/usr/local/bin/ooll-turn-entrypoint.sh"]
+    # With network_mode: host, 'ports:' is ignored; the process binds the host
+    # ports directly (3478/tcp+udp, 5349/tcp, MIN_PORT–MAX_PORT/udp).
+
+volumes:
+  coturn_data:
