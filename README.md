@@ -40,7 +40,7 @@ docker compose up -d
 ## TLS for TURNS (`turns:` URIs)
 
 1. Issue a certificate for the TURN hostname (for example `turn.example.com`) with Let’s Encrypt, Coolify’s certificate tools, or any ACME client. This is a **direct TLS listener on 5349**, not an HTTPS site behind Traefik.
-2. Place `fullchain.pem` and `privkey.pem` in a directory and mount it at `/certs` (the default volume is `./certs`, overridable with `TURN_CERT_DIR`).
+2. Place `fullchain.pem` and `privkey.pem` in a directory and copy them into the `coturn_certs` volume (mounted at `/certs`), or change that volume line in `docker-compose.yml` to a host path such as `/etc/letsencrypt/live/turn.example.com:/certs:ro`.
 3. Optionally set `TURN_CERT=/certs/fullchain.pem` and `TURN_KEY=/certs/privkey.pem` if you use different filenames.
 4. Restart the service. Logs should say that TURNS is enabled. If the files are missing, TLS is disabled and only `turn:` (3478) is offered.
 
@@ -81,3 +81,9 @@ Variable names may differ per app; use whatever your app expects for its TURN UR
 ## Environment reference
 
 See `.env.example` for the full list and comments. No real secrets belong in git.
+
+## Troubleshooting
+
+- The entrypoint is built into the image (see `Dockerfile`), so nothing from the repo is bind-mounted at runtime.
+- Every start prints `ooll-coturn: ...` lines to the logs. If setup fails (for example `TURN_PASSWORD` is empty), the container prints the reason and waits 120 seconds before exiting, so the error stays readable in Coolify's logs.
+- If you see `Address already in use`, another process on the host already uses 3478 or 5349.

@@ -8,7 +8,10 @@
 
 services:
   coturn:
-    image: coturn/coturn:4.6
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ooll-space-coturn:local
     restart: unless-stopped
     network_mode: host
     environment:
@@ -25,12 +28,12 @@ services:
       USER_QUOTA: ${USER_QUOTA:-12}
       TOTAL_QUOTA: ${TOTAL_QUOTA:-1200}
     volumes:
-      - ./docker-entrypoint.sh:/usr/local/bin/ooll-turn-entrypoint.sh:ro
-      - ${TURN_CERT_DIR:-./certs}:/certs:ro
+      # Put fullchain.pem + privkey.pem in this volume to enable turns: (optional).
+      - coturn_certs:/certs:ro
       - coturn_data:/var/lib/coturn
-    entrypoint: ["/bin/sh", "/usr/local/bin/ooll-turn-entrypoint.sh"]
     # With network_mode: host, 'ports:' is ignored; the process binds the host
     # ports directly (3478/tcp+udp, 5349/tcp, MIN_PORT–MAX_PORT/udp).
 
 volumes:
   coturn_data:
+  coturn_certs:

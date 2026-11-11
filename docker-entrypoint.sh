@@ -2,6 +2,16 @@
 # Generate turnserver.conf from environment and start coturn.
 set -eu
 
+# If anything fails before coturn starts, keep the container up briefly so the
+# error is visible in the logs instead of an endless silent restart loop.
+fail() {
+  echo "ooll-coturn: $*" >&2
+  echo "ooll-coturn: sleeping 120s so you can read this in the logs." >&2
+  sleep 120
+  exit 1
+}
+echo "ooll-coturn: starting entrypoint" >&2
+
 CONF="/tmp/turnserver.conf"
 : "${TURN_REALM:=turn.example.com}"
 : "${TURN_USERNAME:=oollspace}"
@@ -15,8 +25,7 @@ CONF="/tmp/turnserver.conf"
 : "${TURN_KEY:=/certs/privkey.pem}"
 
 if [ -z "${TURN_PASSWORD:-}" ]; then
-  echo "TURN_PASSWORD is required. Set it in Coolify / .env and redeploy." >&2
-  exit 1
+  fail "TURN_PASSWORD is required. Set it in Coolify environment variables and redeploy."
 fi
 
 EXTERNAL_IP="${EXTERNAL_IP:-}"
@@ -106,4 +115,6 @@ else
   echo "no-dtls" >> "$CONF"
 fi
 
+command -v turnserver >/dev/null 2>&1 || fail "turnserver binary not found in image"
+echo "ooll-coturn: config written, launching turnserver on ${LISTEN_PORT} (relay ${MIN_PORT}-${MAX_PORT})" >&2
 exec turnserver -c "$CONF" --pidfile /var/tmp/turnserver.pid
